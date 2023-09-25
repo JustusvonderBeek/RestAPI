@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
 	"log"
@@ -18,38 +19,6 @@ type Word struct {
 }
 
 var vocabulary = []Word{}
-
-func getData(c *gin.Context) {
-	c.IndentedJSON(http.StatusOK, vocabulary)
-}
-
-func postData(c *gin.Context) {
-	var newVocab Word
-	if err := c.BindJSON(&newVocab); err != nil {
-		return
-	}
-
-	totalData := append(vocabulary, newVocab)
-	c.IndentedJSON(http.StatusCreated, totalData)
-	rawData, err := json.Marshal(totalData)
-	if err != nil {
-		log.Printf("Failed to write data to disk because of: %s", err)
-	}
-	writeData(rawData)
-}
-
-func getDataItem(c *gin.Context) {
-	id := c.Param("id")
-	compare, _ := strconv.Atoi(id)
-
-	for _, word := range vocabulary {
-		if word.ID == compare {
-			c.IndentedJSON(http.StatusOK, word)
-			return
-		}
-	}
-	c.IndentedJSON(http.StatusNotFound, gin.H{"message": "word not found"})
-}
 
 func writeData(data []byte) error {
 	file := "vocabulary.json"
@@ -81,7 +50,68 @@ func readData() []Word {
 	return vocabulary
 }
 
+func swapExistingVocabulary() {
+	log.Print("Swapping the existing vocabulary file...")
+	vocab := "vocabulary.json"
+	_, err := os.Open(vocab)
+	if err != nil {
+		log.Print("Vocabulary does not exist.")
+		return
+	}
+	counter := 1
+	filename := "vocabulary_" + strconv.Itoa(counter) + ".json"
+	for {
+		_, err = os.Open(filename)
+		if err != nil {
+			break
+		}
+		counter += 1
+		filename = "vocabulary_" + strconv.Itoa(counter) + ".json"
+	}
+	cnt, err := os.ReadFile(vocab)
+	if err != nil {
+		log.Fatal("Failed to read the content of the existing vocabulary!")
+	}
+	os.WriteFile(filename, cnt, os.ModePerm)
+	os.Create(vocab)
+}
+
+func getData(c *gin.Context) {
+	c.IndentedJSON(http.StatusOK, vocabulary)
+}
+
+func postData(c *gin.Context) {
+	var newVocab Word
+	if err := c.BindJSON(&newVocab); err != nil {
+		return
+	}
+
+	vocabulary = append(vocabulary, newVocab)
+	c.IndentedJSON(http.StatusCreated, vocabulary)
+	rawData, err := json.MarshalIndent(vocabulary, "", "\t")
+	if err != nil {
+		log.Printf("Failed to write data to disk because of: %s", err)
+	}
+	writeData(rawData)
+}
+
+func getDataItem(c *gin.Context) {
+	id := c.Param("id")
+	compare, _ := strconv.Atoi(id)
+
+	for _, word := range vocabulary {
+		if word.ID == compare {
+			c.IndentedJSON(http.StatusOK, word)
+			return
+		}
+	}
+	c.IndentedJSON(http.StatusNotFound, gin.H{"message": "word not found"})
+}
+
 func startingServer(cfg Configuration) error {
+	if cfg.Overwrite {
+		swapExistingVocabulary()
+	}
 	vocabulary = readData()
 
 	router := gin.Default()
@@ -95,11 +125,9 @@ func startingServer(cfg Configuration) error {
 	return nil
 }
 
-func startingClient(cfg Configuration) error {
-	client := &http.Client{}
-
+func getVocabulary(cfg Configuration, client *http.Client) {
 	addr := cfg.IP_Address + ":" + cfg.Listen_Port
-	url := "http://" + addr + "/albums"
+	url := "http://" + addr + "/words"
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		log.Fatal("Failed to request url")
@@ -116,6 +144,49 @@ func startingClient(cfg Configuration) error {
 	}
 
 	log.Printf("Response: %s", string(body))
+}
+
+func putVocabulary(cfg Configuration, client *http.Client) {
+	addr := cfg.IP_Address + ":" + cfg.Listen_Port
+	url := "http://" + addr + "/words"
+
+	newVocab := Word{
+		ID:          1,
+		Vocabulary:  "Test",
+		Translation: "Ein Test",
+	}
+	raw, err := json.Marshal(newVocab)
+	if err != nil {
+		log.Fatal("Failed to convert vocab to JSON format")
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(raw))
+	if err != nil {
+		log.Fatal("Failed to request url")
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Fatal("Failed to request")
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatal("Failed to read response body")
+	}
+
+	log.Printf("Response: %s", string(body))
+}
+
+func startingClient(cfg Configuration) error {
+	if cfg.Overwrite {
+		swapExistingVocabulary()
+	}
+	client := &http.Client{}
+
+	getVocabulary(cfg, client)
+	putVocabulary(cfg, client)
+	getVocabulary(cfg, client)
 
 	return nil
 }
