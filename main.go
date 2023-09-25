@@ -12,12 +12,14 @@ func main() {
 
 	addr := flag.String("a", "0.0.0.0", "Listen address")
 	port := flag.String("p", "50000", "Listen port")
+	overwrite := flag.Bool("e", false, "Overwrite the existing vocabulary")
 	client := flag.Bool("c", false, "If set start as client and make request")
 	flag.Parse()
 
 	configuration := Configuration{
 		IP_Address:  *addr,
 		Listen_Port: *port,
+		Overwrite:   *overwrite,
 		Client:      *client,
 	}
 
