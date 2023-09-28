@@ -125,6 +125,10 @@ func startingServer(cfg Configuration) error {
 	return nil
 }
 
+// ---------------------------------------------------------
+// CLIENT
+// ---------------------------------------------------------
+
 func getVocabulary(cfg Configuration, client *http.Client) {
 	addr := cfg.IP_Address + ":" + cfg.Listen_Port
 	url := "http://" + addr + "/words"
