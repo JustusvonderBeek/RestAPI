@@ -125,6 +125,12 @@ func modifyDataItem(c *gin.Context) {
 		}
 	}
 	log.Printf("Updated %d to %x", compare, updatedWord)
+	rawData, err := json.MarshalIndent(vocabulary, "", "\t")
+	if err != nil {
+		log.Print("Failed to process internal data!")
+		return
+	}
+	writeData(rawData)
 }
 
 func startingServer(cfg Configuration) error {
