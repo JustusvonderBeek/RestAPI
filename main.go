@@ -11,7 +11,7 @@ func main() {
 	setupLogger("api.log")
 
 	addr := flag.String("a", "0.0.0.0", "Listen address")
-	port := flag.String("p", "50000", "Listen port")
+	port := flag.String("p", "50002", "Listen port")
 	overwrite := flag.Bool("e", false, "Overwrite the existing vocabulary")
 	client := flag.Bool("c", false, "If set start as client and make request")
 	flag.Parse()

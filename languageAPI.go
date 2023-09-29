@@ -121,7 +121,7 @@ func startingServer(cfg Configuration) error {
 
 	address := cfg.IP_Address + ":" + cfg.Listen_Port
 	// router.Run(address)
-	router.RunTLS(address, "vocabulary_local.cer", "vocabulary_local.key")
+	router.RunTLS(address, "vocabulary.cer", "vocabulary.key")
 
 	return nil
 }
