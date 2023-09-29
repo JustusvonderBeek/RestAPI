@@ -120,7 +120,8 @@ func startingServer(cfg Configuration) error {
 	router.GET("/words/:id", getDataItem)
 
 	address := cfg.IP_Address + ":" + cfg.Listen_Port
-	router.Run(address)
+	// router.Run(address)
+	router.RunTLS(address, "vocabulary_local.cer", "vocabulary_local.key")
 
 	return nil
 }
