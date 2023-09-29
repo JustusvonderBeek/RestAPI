@@ -118,10 +118,10 @@ func modifyDataItem(c *gin.Context) {
 		return
 	}
 
-	for _, word := range vocabulary {
+	for idx, word := range vocabulary {
 		if word.ID == compare {
-			word.Vocabulary = updatedWord.Vocabulary
-			word.Translation = updatedWord.Translation
+			vocabulary[idx].Vocabulary = updatedWord.Vocabulary
+			vocabulary[idx].Translation = updatedWord.Translation
 		}
 	}
 	log.Printf("Updated %d to %x", compare, updatedWord)
