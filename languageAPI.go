@@ -108,6 +108,25 @@ func getDataItem(c *gin.Context) {
 	c.IndentedJSON(http.StatusNotFound, gin.H{"message": "word not found"})
 }
 
+func modifyDataItem(c *gin.Context) {
+	id := c.Param("id")
+	compare, _ := strconv.Atoi(id)
+	var updatedWord Word
+	err := c.ShouldBindJSON(&updatedWord)
+	if err != nil {
+		log.Print("Failed to bind to Word")
+		return
+	}
+
+	for _, word := range vocabulary {
+		if word.ID == compare {
+			word.Vocabulary = updatedWord.Vocabulary
+			word.Translation = updatedWord.Translation
+		}
+	}
+	log.Printf("Updated %d to %x", compare, updatedWord)
+}
+
 func startingServer(cfg Configuration) error {
 	if cfg.Overwrite {
 		swapExistingVocabulary()
@@ -118,6 +137,7 @@ func startingServer(cfg Configuration) error {
 	router.GET("/words", getData)
 	router.POST("words", postData)
 	router.GET("/words/:id", getDataItem)
+	router.POST("/words/:id", modifyDataItem)
 
 	address := cfg.IP_Address + ":" + cfg.Listen_Port
 	// router.Run(address)
