@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"io"
 	"log"
@@ -133,6 +134,31 @@ func modifyDataItem(c *gin.Context) {
 	writeData(rawData)
 }
 
+func removeDataItem(c *gin.Context) {
+	id := c.Param("id")
+	compare, _ := strconv.Atoi(id)
+	for idx, word := range vocabulary {
+		if word.ID == compare {
+			if idx == 0 {
+				vocabulary = vocabulary[idx+1:]
+				break
+			} else {
+				vocabulary = append(vocabulary[:idx-1], vocabulary[idx+1:]...)
+				break
+			}
+		}
+	}
+	log.Printf("Removed item at index %d", compare)
+	rawData, err := json.MarshalIndent(vocabulary, "", "\t")
+	if err != nil {
+		log.Print("Failed to convert vocabulary to JSON")
+		c.IndentedJSON(http.StatusInternalServerError, vocabulary)
+		return
+	}
+	writeData(rawData)
+	c.IndentedJSON(http.StatusOK, vocabulary)
+}
+
 func startingServer(cfg Configuration) error {
 	if cfg.Overwrite {
 		swapExistingVocabulary()
@@ -144,6 +170,7 @@ func startingServer(cfg Configuration) error {
 	router.POST("words", postData)
 	router.GET("/words/:id", getDataItem)
 	router.POST("/words/:id", modifyDataItem)
+	router.DELETE("/words/:id", removeDataItem)
 
 	address := cfg.IP_Address + ":" + cfg.Listen_Port
 	// router.Run(address)
@@ -158,7 +185,7 @@ func startingServer(cfg Configuration) error {
 
 func getVocabulary(cfg Configuration, client *http.Client) {
 	addr := cfg.IP_Address + ":" + cfg.Listen_Port
-	url := "http://" + addr + "/words"
+	url := "https://" + addr + "/words"
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		log.Fatal("Failed to request url")
@@ -179,7 +206,7 @@ func getVocabulary(cfg Configuration, client *http.Client) {
 
 func putVocabulary(cfg Configuration, client *http.Client) {
 	addr := cfg.IP_Address + ":" + cfg.Listen_Port
-	url := "http://" + addr + "/words"
+	url := "https://" + addr + "/words"
 
 	newVocab := Word{
 		ID:          1,
@@ -209,15 +236,39 @@ func putVocabulary(cfg Configuration, client *http.Client) {
 	log.Printf("Response: %s", string(body))
 }
 
+func removeVocabulary(cfg Configuration, client *http.Client) {
+	addr := cfg.IP_Address + ":" + cfg.Listen_Port
+	url := "https://" + addr + "/words/1"
+	req, err := http.NewRequest("DELETE", url, nil)
+	if err != nil {
+		log.Fatalf("Failed to request url: %s", err)
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Fatal("Failed to request")
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatal("Failed to read response body")
+	}
+
+	log.Printf("Response: %s", string(body))
+}
+
 func startingClient(cfg Configuration) error {
 	if cfg.Overwrite {
 		swapExistingVocabulary()
 	}
-	client := &http.Client{}
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Transport: tr}
 
 	getVocabulary(cfg, client)
 	putVocabulary(cfg, client)
 	getVocabulary(cfg, client)
+	removeVocabulary(cfg, client)
 
 	return nil
 }
