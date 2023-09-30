@@ -48,6 +48,16 @@ func readData() []Word {
 		log.Print("The given file does not contain a valid vocabulary!")
 		return []Word{}
 	}
+	// Fixing the indexing
+	for idx, word := range vocabulary {
+		word.ID = idx
+	}
+	rawData, err := json.MarshalIndent(vocabulary, "", "\t")
+	if err != nil {
+		log.Print("Failed to process internal data!")
+		return vocabulary
+	}
+	writeData(rawData)
 	return vocabulary
 }
 
