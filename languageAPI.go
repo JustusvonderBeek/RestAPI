@@ -49,8 +49,8 @@ func readData() []Word {
 		return []Word{}
 	}
 	// Fixing the indexing
-	for idx, word := range vocabulary {
-		word.ID = idx
+	for idx, _ := range vocabulary {
+		vocabulary[idx].ID = idx
 	}
 	rawData, err := json.MarshalIndent(vocabulary, "", "\t")
 	if err != nil {
