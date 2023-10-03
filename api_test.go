@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"io"
 	"log"
 	"net/http"
@@ -18,6 +19,10 @@ var config Configuration = Configuration{
 	Client:      false,
 }
 
+func compareWordLists(listExpected []Word, listGiven []Word) error {
+	return errors.New("given lists do not match")
+}
+
 func TestAddWord(t *testing.T) {
 	addr := config.IP_Address + ":" + config.Listen_Port
 	url := "https://" + addr + "/words"
@@ -26,7 +31,7 @@ func TestAddWord(t *testing.T) {
 	}
 	client := &http.Client{Transport: tr}
 	newVocab := Word{
-		ID:          1,
+		ID:          1337,
 		Vocabulary:  "Test",
 		Translation: "Ein Test",
 	}
@@ -37,12 +42,12 @@ func TestAddWord(t *testing.T) {
 	}
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(raw))
 	if err != nil {
-		log.Print("Failed to request url")
+		log.Print("Failed to post data to url")
 		t.FailNow()
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Print("Failed to request")
+		log.Print("Failed to post request")
 		t.FailNow()
 	}
 	defer resp.Body.Close()
