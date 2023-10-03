@@ -1,10 +1,7 @@
 package main
 
 import (
-	"bytes"
-	"crypto/tls"
 	"encoding/json"
-	"io"
 	"log"
 	"net/http"
 	"os"
@@ -21,6 +18,10 @@ type Word struct {
 
 var vocabulary = []Word{}
 
+// -------------------------------------------------------------------------------
+// Auxiliary Functions
+// -------------------------------------------------------------------------------
+
 func writeData(data []byte) error {
 	file := "vocabulary.json"
 	f, err := os.Create(file)
@@ -35,11 +36,30 @@ func writeData(data []byte) error {
 	return nil
 }
 
+func saveVocabulary() {
+	rawData, err := json.MarshalIndent(vocabulary, "", "\t")
+	if err != nil {
+		log.Print("Failed to convert data to JSON!")
+		return
+	}
+	writeData(rawData)
+}
+
+func fixIndexing(list *[]Word) {
+	// log.Print("Fixing the indexing")
+	for idx := range *list {
+		(*list)[idx].ID = idx
+	}
+}
+
 func readData() []Word {
 	filename := "vocabulary.json"
 	content, err := os.ReadFile(filename)
 	if err != nil {
 		log.Printf("No vocabulary found. Creating new one...")
+		return []Word{}
+	}
+	if string(content) == "" {
 		return []Word{}
 	}
 	var vocabulary []Word
@@ -49,15 +69,8 @@ func readData() []Word {
 		return []Word{}
 	}
 	// Fixing the indexing
-	for idx, _ := range vocabulary {
-		vocabulary[idx].ID = idx
-	}
-	rawData, err := json.MarshalIndent(vocabulary, "", "\t")
-	if err != nil {
-		log.Print("Failed to process internal data!")
-		return vocabulary
-	}
-	writeData(rawData)
+	fixIndexing(&vocabulary)
+	saveVocabulary()
 	return vocabulary
 }
 
@@ -66,7 +79,16 @@ func swapExistingVocabulary() {
 	vocab := "vocabulary.json"
 	_, err := os.Open(vocab)
 	if err != nil {
-		log.Print("Vocabulary does not exist.")
+		log.Print("Vocabulary file does not exist")
+		return
+	}
+	content, err := os.ReadFile("vocabulary.json")
+	if err != nil {
+		log.Printf("Vocabulary seems to be corrupted: %s", err)
+		return
+	}
+	if string(content) == "" {
+		log.Print("Vocabulary is empty")
 		return
 	}
 	counter := 1
@@ -87,6 +109,10 @@ func swapExistingVocabulary() {
 	os.Create(vocab)
 }
 
+// -------------------------------------------------------------------------------
+// API Implementation
+// -------------------------------------------------------------------------------
+
 func getData(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, vocabulary)
 }
@@ -97,13 +123,11 @@ func postData(c *gin.Context) {
 		return
 	}
 
+	// Fixing the ID in the received Word
+	newVocab.ID = len(vocabulary)
 	vocabulary = append(vocabulary, newVocab)
 	c.IndentedJSON(http.StatusCreated, vocabulary)
-	rawData, err := json.MarshalIndent(vocabulary, "", "\t")
-	if err != nil {
-		log.Printf("Failed to write data to disk because of: %s", err)
-	}
-	writeData(rawData)
+	saveVocabulary()
 }
 
 func getDataItem(c *gin.Context) {
@@ -136,12 +160,7 @@ func modifyDataItem(c *gin.Context) {
 		}
 	}
 	log.Printf("Updated %d to %x", compare, updatedWord)
-	rawData, err := json.MarshalIndent(vocabulary, "", "\t")
-	if err != nil {
-		log.Print("Failed to process internal data!")
-		return
-	}
-	writeData(rawData)
+	saveVocabulary()
 }
 
 func removeDataItem(c *gin.Context) {
@@ -159,13 +178,7 @@ func removeDataItem(c *gin.Context) {
 		}
 	}
 	log.Printf("Removed item at index %d", compare)
-	rawData, err := json.MarshalIndent(vocabulary, "", "\t")
-	if err != nil {
-		log.Print("Failed to convert vocabulary to JSON")
-		c.IndentedJSON(http.StatusInternalServerError, vocabulary)
-		return
-	}
-	writeData(rawData)
+	saveVocabulary()
 	c.IndentedJSON(http.StatusOK, vocabulary)
 }
 
@@ -185,100 +198,6 @@ func startingServer(cfg Configuration) error {
 	address := cfg.IP_Address + ":" + cfg.Listen_Port
 	// router.Run(address)
 	router.RunTLS(address, "vocabulary.cer", "vocabulary.key")
-
-	return nil
-}
-
-// ---------------------------------------------------------
-// CLIENT
-// ---------------------------------------------------------
-
-func getVocabulary(cfg Configuration, client *http.Client) {
-	addr := cfg.IP_Address + ":" + cfg.Listen_Port
-	url := "https://" + addr + "/words"
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		log.Fatal("Failed to request url")
-	}
-
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Fatal("Failed to request")
-	}
-	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatal("Failed to read response body")
-	}
-
-	log.Printf("Response: %s", string(body))
-}
-
-func putVocabulary(cfg Configuration, client *http.Client) {
-	addr := cfg.IP_Address + ":" + cfg.Listen_Port
-	url := "https://" + addr + "/words"
-
-	newVocab := Word{
-		ID:          1,
-		Vocabulary:  "Test",
-		Translation: "Ein Test",
-	}
-	raw, err := json.Marshal(newVocab)
-	if err != nil {
-		log.Fatal("Failed to convert vocab to JSON format")
-	}
-
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(raw))
-	if err != nil {
-		log.Fatal("Failed to request url")
-	}
-
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Fatal("Failed to request")
-	}
-	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatal("Failed to read response body")
-	}
-
-	log.Printf("Response: %s", string(body))
-}
-
-func removeVocabulary(cfg Configuration, client *http.Client) {
-	addr := cfg.IP_Address + ":" + cfg.Listen_Port
-	url := "https://" + addr + "/words/1"
-	req, err := http.NewRequest("DELETE", url, nil)
-	if err != nil {
-		log.Fatalf("Failed to request url: %s", err)
-	}
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Fatal("Failed to request")
-	}
-	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatal("Failed to read response body")
-	}
-
-	log.Printf("Response: %s", string(body))
-}
-
-func startingClient(cfg Configuration) error {
-	if cfg.Overwrite {
-		swapExistingVocabulary()
-	}
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	}
-	client := &http.Client{Transport: tr}
-
-	getVocabulary(cfg, client)
-	putVocabulary(cfg, client)
-	getVocabulary(cfg, client)
-	removeVocabulary(cfg, client)
 
 	return nil
 }
