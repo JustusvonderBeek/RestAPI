@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"testing"
 )
 
@@ -50,7 +51,15 @@ func TestAddWord(t *testing.T) {
 		log.Print("Failed to read response body")
 		t.FailNow()
 	}
-	log.Printf("Response: %s", string(body))
+	expected, err := os.ReadFile("vocabulary.json")
+	if err != nil {
+		log.Print("Failed to read comparison file!")
+		t.FailNow()
+	}
+	if string(expected) != string(body) {
+		log.Printf("Expected: %s\nGot: %s", expected, string(body))
+		t.FailNow()
+	}
 }
 
 func TestRemoveWord(t *testing.T) {
