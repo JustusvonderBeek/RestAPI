@@ -126,8 +126,8 @@ func postData(c *gin.Context) {
 	// Fixing the ID in the received Word
 	newVocab.ID = len(vocabulary)
 	vocabulary = append(vocabulary, newVocab)
-	c.IndentedJSON(http.StatusCreated, vocabulary)
 	saveVocabulary()
+	c.IndentedJSON(http.StatusCreated, vocabulary)
 }
 
 func getDataItem(c *gin.Context) {
