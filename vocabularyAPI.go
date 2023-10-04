@@ -172,7 +172,7 @@ func modifyDataItem(c *gin.Context) {
 	vocabulary[compare].Vocabulary = updatedWord.Vocabulary
 	vocabulary[compare].Translation = updatedWord.Translation
 
-	log.Printf("Updated %d to %x", compare, updatedWord)
+	log.Printf("Updated %d to %+v", compare, updatedWord)
 	saveVocabulary(&vocabulary)
 	c.IndentedJSON(http.StatusCreated, vocabulary)
 }
