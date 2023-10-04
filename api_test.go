@@ -115,8 +115,15 @@ func compareRemovedCorrectly(originalList []byte, alteredList []byte, removedInd
 		return false
 	}
 	for idx := range altList {
-		if orgList[idx] != altList[idx] {
-			return false
+		if idx < removedIndex {
+			if orgList[idx] != altList[idx] {
+				return false
+			}
+		} else {
+			if orgList[idx+1].Vocabulary != altList[idx].Vocabulary || orgList[idx+1].Translation != altList[idx].Translation {
+				log.Printf("Expected: %+v Got: %+v", orgList[idx+1], altList[idx])
+				return false
+			}
 		}
 	}
 	return true
