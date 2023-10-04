@@ -215,7 +215,7 @@ func removeDataItem(c *gin.Context) {
 }
 
 func startingServer(cfg Configuration) error {
-	gin.SetMode(gin.DebugMode)
+	gin.SetMode(gin.ReleaseMode)
 	if cfg.Overwrite {
 		swapExistingVocabulary()
 	}
