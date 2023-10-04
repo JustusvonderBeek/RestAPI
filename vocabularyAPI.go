@@ -72,7 +72,11 @@ func readData() []Word {
 		log.Print("The given file does not contain a valid vocabulary!")
 		return []Word{}
 	}
-	log.Printf("Loaded vocabulary:\n%+v", vocabulary)
+	if len(vocabulary) > 10 {
+		log.Printf("Loaded vocabulary:\n%+v", vocabulary[:10])
+	} else {
+		log.Printf("Loaded vocabulary:\n%+v", vocabulary)
+	}
 	saveVocabulary(&vocabulary)
 	return vocabulary
 }
