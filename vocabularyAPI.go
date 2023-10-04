@@ -36,8 +36,11 @@ func writeData(data []byte) error {
 	return nil
 }
 
-func saveVocabulary() {
-	rawData, err := json.MarshalIndent(vocabulary, "", "\t")
+func saveVocabulary(vocab *[]Word) {
+	log.Print("Storing the vocabulary")
+	// Do this every time due to wrong read or remove operation
+	fixIndexing(vocab)
+	rawData, err := json.MarshalIndent(*vocab, "", "\t")
 	if err != nil {
 		log.Print("Failed to convert data to JSON!")
 		return
@@ -46,13 +49,14 @@ func saveVocabulary() {
 }
 
 func fixIndexing(list *[]Word) {
-	// log.Print("Fixing the indexing")
+	log.Print("Fixing the indexing")
 	for idx := range *list {
 		(*list)[idx].ID = idx
 	}
 }
 
 func readData() []Word {
+	log.Print("Reading existing vocabulary")
 	filename := "vocabulary.json"
 	content, err := os.ReadFile(filename)
 	if err != nil {
@@ -68,14 +72,13 @@ func readData() []Word {
 		log.Print("The given file does not contain a valid vocabulary!")
 		return []Word{}
 	}
-	// Fixing the indexing
-	fixIndexing(&vocabulary)
-	saveVocabulary()
+	log.Printf("Loaded vocabulary:\n%+v", vocabulary)
+	saveVocabulary(&vocabulary)
 	return vocabulary
 }
 
 func swapExistingVocabulary() {
-	log.Print("Swapping the existing vocabulary file...")
+	log.Print("Swapping the existing vocabulary file")
 	vocab := "vocabulary.json"
 	_, err := os.Open(vocab)
 	if err != nil {
@@ -126,7 +129,7 @@ func postData(c *gin.Context) {
 	// Fixing the ID in the received Word
 	newVocab.ID = len(vocabulary)
 	vocabulary = append(vocabulary, newVocab)
-	saveVocabulary()
+	saveVocabulary(&vocabulary)
 	c.IndentedJSON(http.StatusCreated, vocabulary)
 }
 
@@ -160,29 +163,48 @@ func modifyDataItem(c *gin.Context) {
 		}
 	}
 	log.Printf("Updated %d to %x", compare, updatedWord)
-	saveVocabulary()
+	saveVocabulary(&vocabulary)
 }
 
 func removeDataItem(c *gin.Context) {
 	id := c.Param("id")
 	compare, _ := strconv.Atoi(id)
-	for idx, word := range vocabulary {
-		if word.ID == compare {
-			if idx == 0 {
-				vocabulary = vocabulary[idx+1:]
-				break
-			} else {
-				vocabulary = append(vocabulary[:idx-1], vocabulary[idx+1:]...)
-				break
-			}
-		}
+	var removeWord Word
+	err := c.ShouldBindJSON(&removeWord)
+	if err != nil {
+		log.Print("given body does not contain valid word")
+		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": ""})
+		return
 	}
+	if compare != removeWord.ID {
+		log.Print("incorrect word id and url id")
+		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": ""})
+		return
+	}
+	if compare >= len(vocabulary) || compare < 0 {
+		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "given index does not exist"})
+		return
+	}
+
+	log.Printf("Full Vocab: %+v", vocabulary)
+
+	wordToRemove := vocabulary[compare]
+	if wordToRemove != removeWord {
+		log.Print("remove vocab word does not match")
+		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": ""})
+		return
+	}
+
+	vocabulary = append(vocabulary[:compare], vocabulary[compare+1:]...)
+
 	log.Printf("Removed item at index %d", compare)
-	saveVocabulary()
+	log.Printf("Full Vocab: %+v", vocabulary)
+	saveVocabulary(&vocabulary)
 	c.IndentedJSON(http.StatusOK, vocabulary)
 }
 
 func startingServer(cfg Configuration) error {
+	gin.SetMode(gin.DebugMode)
 	if cfg.Overwrite {
 		swapExistingVocabulary()
 	}
@@ -190,8 +212,8 @@ func startingServer(cfg Configuration) error {
 
 	router := gin.Default()
 	router.GET("/words", getData)
-	router.POST("words", postData)
 	router.GET("/words/:id", getDataItem)
+	router.POST("words", postData)
 	router.POST("/words/:id", modifyDataItem)
 	router.DELETE("/words/:id", removeDataItem)
 
