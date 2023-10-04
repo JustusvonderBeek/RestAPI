@@ -155,15 +155,22 @@ func modifyDataItem(c *gin.Context) {
 		log.Print("Failed to bind to Word")
 		return
 	}
-
-	for idx, word := range vocabulary {
-		if word.ID == compare {
-			vocabulary[idx].Vocabulary = updatedWord.Vocabulary
-			vocabulary[idx].Translation = updatedWord.Translation
-		}
+	if compare != updatedWord.ID {
+		log.Print("incorrect word id and url id")
+		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": ""})
+		return
 	}
+	if compare >= len(vocabulary) || compare < 0 {
+		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "given index does not exist"})
+		return
+	}
+
+	vocabulary[compare].Vocabulary = updatedWord.Vocabulary
+	vocabulary[compare].Translation = updatedWord.Translation
+
 	log.Printf("Updated %d to %x", compare, updatedWord)
 	saveVocabulary(&vocabulary)
+	c.IndentedJSON(http.StatusCreated, vocabulary)
 }
 
 func removeDataItem(c *gin.Context) {
@@ -186,7 +193,7 @@ func removeDataItem(c *gin.Context) {
 		return
 	}
 
-	log.Printf("Full Vocab: %+v", vocabulary)
+	// log.Printf("Full Vocab: %+v", vocabulary)
 
 	wordToRemove := vocabulary[compare]
 	if wordToRemove != removeWord {
@@ -198,7 +205,7 @@ func removeDataItem(c *gin.Context) {
 	vocabulary = append(vocabulary[:compare], vocabulary[compare+1:]...)
 
 	log.Printf("Removed item at index %d", compare)
-	log.Printf("Full Vocab: %+v", vocabulary)
+	// log.Printf("Full Vocab: %+v", vocabulary)
 	saveVocabulary(&vocabulary)
 	c.IndentedJSON(http.StatusOK, vocabulary)
 }
