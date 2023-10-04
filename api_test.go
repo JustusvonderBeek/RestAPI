@@ -129,6 +129,36 @@ func compareRemovedCorrectly(originalList []byte, alteredList []byte, removedInd
 	return true
 }
 
+func compareModifiedCorrectly(originalList []byte, alteredList []byte, alteredWord Word) bool {
+	var orgList, altList []Word
+	err := json.Unmarshal(originalList, &orgList)
+	if err != nil {
+		log.Print("Failed to convert original list to struct")
+		return false
+	}
+	err = json.Unmarshal(alteredList, &altList)
+	if err != nil {
+		log.Print("Failed to convert altered list to struct")
+		return false
+	}
+	if len(orgList) != len(altList) {
+		log.Print("Lengths do not match")
+		return false
+	}
+	for idx := range orgList {
+		if idx == alteredWord.ID {
+			if altList[idx] != alteredWord {
+				return false
+			}
+		} else {
+			if orgList[idx] != altList[idx] {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 func TestAddWord(t *testing.T) {
 	addr := config.IP_Address + ":" + config.Listen_Port
 	url := "https://" + addr + "/words"
@@ -287,4 +317,71 @@ func TestRemoveWord(t *testing.T) {
 		t.FailNow()
 	}
 	log.Printf("Response: %s", string(body))
+}
+
+func TestModifyWord(t *testing.T) {
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Transport: tr}
+	addr := config.IP_Address + ":" + config.Listen_Port
+	// Removing the last word (just added)
+	currentList, err := os.ReadFile("vocabulary.json")
+	if err != nil {
+		log.Print("Failed to read vocabulary file!")
+		t.FailNow()
+	}
+	var wordlist []Word
+	err = json.Unmarshal(currentList, &wordlist)
+	if err != nil {
+		log.Print("Failed to convert expected list to struct")
+		return
+	}
+	modifyIndex := 0
+	if len(wordlist) > 1 {
+		modifyIndex = int(math.Ceil(float64(len(wordlist)) / 2.0))
+		log.Printf("Removing index: %d", modifyIndex)
+	}
+	url := "https://" + addr + "/words/" + strconv.Itoa(modifyIndex)
+	oldWord := wordlist[modifyIndex]
+	modifyWord := oldWord
+	modifyWord.Vocabulary = modifyWord.Vocabulary + " modified"
+	modifyWord.Translation = modifyWord.Translation + " modified"
+	log.Printf("Changing word from: %+v to %+v", oldWord, modifyWord)
+	raw, err := json.Marshal(modifyWord)
+	if err != nil {
+		log.Print("Failed to convert remove word to JSON")
+		t.FailNow()
+	}
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(raw))
+	if err != nil {
+		log.Print("Failed to post data to url")
+		t.FailNow()
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Print("Failed to post request")
+		t.FailNow()
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Print("Failed to read response body")
+		t.FailNow()
+	}
+	alteredList, err := os.ReadFile("vocabulary.json")
+	if err != nil {
+		log.Print("Failed to read vocabulary file!")
+		t.FailNow()
+	}
+	equal := compareRawWordList(alteredList, body)
+	if !equal {
+		log.Print("Different state at server and client")
+		t.FailNow()
+	}
+	equal = compareModifiedCorrectly(currentList, body, modifyWord)
+	if !equal {
+		log.Print("Modification of word incorrect")
+		t.FailNow()
+	}
 }
