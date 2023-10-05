@@ -222,14 +222,34 @@ func startingServer(cfg Configuration) error {
 	vocabulary = readData()
 
 	router := gin.Default()
-	router.GET("/words", getData)
-	router.GET("/words/:id", getDataItem)
-	router.POST("words", postData)
-	router.POST("/words/:id", modifyDataItem)
-	router.DELETE("/words/:id", removeDataItem)
+	authorized := router.Group("/", gin.BasicAuth(gin.Accounts{
+		"jau29asd92.*d2ld0as=": "/fXJD>[(Z1N=3<U5_2gs*2&j-^bAm2",
+	}))
+
+	var db = make(map[string]string)
+	authorized.POST("/login", func(c *gin.Context) {
+		user := c.MustGet(gin.AuthUserKey).(string)
+
+		// Parse JSON
+		var json struct {
+			Value string `json:"value" binding:"required"`
+		}
+
+		if c.Bind(&json) == nil {
+			db[user] = json.Value
+			c.JSON(http.StatusOK, gin.H{"status": "ok"})
+		}
+	})
+
+	authorized.GET("/words", getData)
+	authorized.GET("/words/:id", getDataItem)
+	authorized.POST("words", postData)
+	authorized.POST("/words/:id", modifyDataItem)
+	authorized.DELETE("/words/:id", removeDataItem)
 
 	address := cfg.IP_Address + ":" + cfg.Listen_Port
 	// router.Run(address)
+
 	router.RunTLS(address, "vocabulary.cer", "vocabulary.key")
 
 	return nil
