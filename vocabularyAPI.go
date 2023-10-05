@@ -227,7 +227,7 @@ func startingServer(cfg Configuration) error {
 	}))
 
 	var db = make(map[string]string)
-	authorized.POST("/login", func(c *gin.Context) {
+	authorized.POST("/", func(c *gin.Context) {
 		user := c.MustGet(gin.AuthUserKey).(string)
 
 		// Parse JSON
