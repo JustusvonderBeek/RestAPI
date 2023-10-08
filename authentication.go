@@ -1,10 +1,10 @@
 package main
 
 import (
+	"os"
+
 	"github.com/golang-jwt/jwt"
 )
-
-var sampleSecretKey = []byte("G0qBl4O*ÊLJ0$<©Rî?Gl@ëCR5¢2<3l7pzÃ]M<DõUY:2>0m±o5{CdÑ582&4d«aI'6")
 
 func generateToken() (string, error) {
 	// Generate a new token for the client
@@ -14,8 +14,11 @@ func generateToken() (string, error) {
 			"authorized": true,
 		})
 
+	// Read the secret from the environment
+	secretKey := os.Getenv(SECRET_KEY)
+	secretKeyByte := []byte(secretKey)
 	// Sign the token with a valid secret
-	tokenString, err := token.SignedString(sampleSecretKey)
+	tokenString, err := token.SignedString(secretKeyByte)
 	if err != nil {
 		return "", err
 	}

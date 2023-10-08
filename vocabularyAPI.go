@@ -13,6 +13,8 @@ import (
 	"github.com/golang-jwt/jwt"
 )
 
+const SECRET_KEY = "VOCABULARY_SECRET_KEY"
+
 type Word struct {
 	ID          int
 	Vocabulary  string
@@ -242,7 +244,9 @@ func authenticationMiddleware() gin.HandlerFunc {
 			if !ok {
 				return "", errors.New("unauthorized")
 			}
-			return []byte("G0qBl4O*ÊLJ0$<©Rî?Gl@ëCR5¢2<3l7pzÃ]M<DõUY:2>0m±o5{CdÑ582&4d«aI'6"), nil
+			secretKey := os.Getenv(SECRET_KEY)
+			secretKeyByte := []byte(secretKey)
+			return secretKeyByte, nil
 		})
 		// log.Printf("Parsing got: %s, %s", token.Raw, err)
 		if err != nil {
