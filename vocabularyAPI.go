@@ -242,7 +242,7 @@ func authenticationMiddleware() gin.HandlerFunc {
 			if !ok {
 				return "", errors.New("unauthorized")
 			}
-			return []byte("0>i3(r61D11¤Tqu5$kz$4ãMb(1ð>rOëpoP7=o§æ[16#Mt?çoe0206;s4)KÁD3<<o"), nil
+			return []byte("G0qBl4O*ÊLJ0$<©Rî?Gl@ëCR5¢2<3l7pzÃ]M<DõUY:2>0m±o5{CdÑ582&4d«aI'6"), nil
 		})
 		// log.Printf("Parsing got: %s, %s", token.Raw, err)
 		if err != nil {
