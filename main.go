@@ -14,6 +14,7 @@ func main() {
 	port := flag.String("p", "50002", "Listen port")
 	overwrite := flag.Bool("e", false, "Overwrite the existing vocabulary")
 	client := flag.Bool("c", false, "If set start as client and make request")
+	token := flag.Bool("t", false, "If set a new token is generated")
 	flag.Parse()
 
 	configuration := Configuration{
@@ -21,6 +22,7 @@ func main() {
 		Listen_Port: *port,
 		Overwrite:   *overwrite,
 		Client:      *client,
+		Token:       *token,
 	}
 
 	// Starting the main server and waiting for request
