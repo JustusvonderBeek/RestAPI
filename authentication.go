@@ -1,8 +1,10 @@
 package main
 
 import (
+	"net/http"
 	"os"
 
+	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
 )
 
@@ -23,4 +25,18 @@ func generateToken() (string, error) {
 		return "", err
 	}
 	return tokenString, nil
+}
+
+func IPWhiteList(whitelist map[string]bool) gin.HandlerFunc {
+	f := func(c *gin.Context) {
+		// If the IP isn't in the whitelist, forbid the request.
+		ip := c.ClientIP()
+
+		if !whitelist[ip] {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "fuck you in the ass blyad"})
+			return
+		}
+		c.Next()
+	}
+	return f
 }
