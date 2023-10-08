@@ -5,4 +5,5 @@ type Configuration struct {
 	Listen_Port string
 	Overwrite   bool
 	Client      bool
+	Token       bool
 }
