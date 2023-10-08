@@ -4,7 +4,7 @@ import (
 	"github.com/golang-jwt/jwt"
 )
 
-var sampleSecretKey = []byte("0>i3(r61D11¤Tqu5$kz$4ãMb(1ð>rOëpoP7=o§æ[16#Mt?çoe0206;s4)KÁD3<<o")
+var sampleSecretKey = []byte("G0qBl4O*ÊLJ0$<©Rî?Gl@ëCR5¢2<3l7pzÃ]M<DõUY:2>0m±o5{CdÑ582&4d«aI'6")
 
 func generateToken() (string, error) {
 	// Generate a new token for the client
