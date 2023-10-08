@@ -286,7 +286,7 @@ func startingServer(cfg Configuration) error {
 			log.Printf("Failed to create token: %s", err)
 			return err
 		}
-		log.Printf("New token: %s", token)
+		println("New token: %s", token)
 		return nil
 	}
 	if cfg.Overwrite {
