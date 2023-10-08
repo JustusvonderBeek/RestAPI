@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -222,6 +223,14 @@ func removeDataItem(c *gin.Context) {
 
 func authenticationMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		body, _ := io.ReadAll(c.Request.Body)
+		header := c.Request.Header
+		origin := c.ClientIP()
+		remote := c.RemoteIP()
+		log.Printf("Request body: %s", body)
+		log.Printf("Request header: %s", header)
+		log.Printf("Origin: %s, Remote: %s", origin, remote)
+
 		tokenString := c.GetHeader("Authorization")
 		// log.Printf("Header: %s", tokenString)
 		if tokenString == "" {
