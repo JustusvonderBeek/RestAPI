@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"io"
 	"log"
 	"net/http"
 	"os"
@@ -159,9 +158,15 @@ func modifyDataItem(c *gin.Context) {
 	id := c.Param("id")
 	compare, _ := strconv.Atoi(id)
 	var updatedWord Word
+	// dataBody := new(bytes.Buffer)
+	// _, err := io.Copy(dataBody, c.Request.Body)
+	// if err != nil {
+	// 	log.Printf("Failed to read full body?")
+	// }
+	// log.Printf("Got body: %s", dataBody.String())
 	err := c.ShouldBindJSON(&updatedWord)
 	if err != nil {
-		log.Print("Failed to bind to Word")
+		log.Printf("Failed to bind to Word: %s", err)
 		return
 	}
 	if compare != updatedWord.ID {
@@ -225,11 +230,11 @@ func removeDataItem(c *gin.Context) {
 
 func authenticationMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		body, _ := io.ReadAll(c.Request.Body)
+		// body, _ := io.ReadAll(c.Request.Body)
 		header := c.Request.Header
 		origin := c.ClientIP()
 		remote := c.RemoteIP()
-		log.Printf("Request body: %s", body)
+		// log.Printf("Request body: %s", body)
 		log.Printf("Request header: %s", header)
 		log.Printf("Origin: %s, Remote: %s", origin, remote)
 
