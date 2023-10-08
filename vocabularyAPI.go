@@ -2,12 +2,14 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt"
 )
 
 type Word struct {
@@ -214,38 +216,67 @@ func removeDataItem(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, vocabulary)
 }
 
+// -------------------------------------------------------------------------------
+// Authentication
+// -------------------------------------------------------------------------------
+
+func authenticationMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		tokenString := c.GetHeader("Authorization")
+		// log.Printf("Header: %s", tokenString)
+		if tokenString == "" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+			return
+		}
+		token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
+			_, ok := t.Method.(*jwt.SigningMethodHMAC)
+			if !ok {
+				return "", errors.New("unauthorized")
+			}
+			return []byte("0>i3(r61D11¤Tqu5$kz$4ãMb(1ð>rOëpoP7=o§æ[16#Mt?çoe0206;s4)KÁD3<<o"), nil
+		})
+		// log.Printf("Parsing got: %s, %s", token.Raw, err)
+		if err != nil {
+			log.Printf("Invalid token: %s", err)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
+			return
+		}
+		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+			c.Set("userId", claims["userId"])
+			c.Next()
+		} else {
+			log.Printf("Invalid claims: %s", claims.Valid().Error())
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
+		}
+	}
+}
+
+// -------------------------------------------------------------------------------
+// Start
+// -------------------------------------------------------------------------------
+
 func startingServer(cfg Configuration) error {
 	gin.SetMode(gin.ReleaseMode)
+	if cfg.Token {
+		token, err := generateToken()
+		if err != nil {
+			log.Printf("Failed to create token: %s", err)
+			return err
+		}
+		log.Printf("New token: %s", token)
+		return nil
+	}
 	if cfg.Overwrite {
 		swapExistingVocabulary()
 	}
 	vocabulary = readData()
-
 	router := gin.Default()
-	authorized := router.Group("/", gin.BasicAuth(gin.Accounts{
-		"jau29asd92.*d2ld0as=": "/fXJD>[(Z1N=3<U5_2gs*2&j-^bAm2",
-	}))
 
-	var db = make(map[string]string)
-	authorized.POST("/", func(c *gin.Context) {
-		user := c.MustGet(gin.AuthUserKey).(string)
-
-		// Parse JSON
-		var json struct {
-			Value string `json:"value" binding:"required"`
-		}
-
-		if c.Bind(&json) == nil {
-			db[user] = json.Value
-			c.JSON(http.StatusOK, gin.H{"status": "ok"})
-		}
-	})
-
-	authorized.GET("/words", getData)
-	authorized.GET("/words/:id", getDataItem)
-	authorized.POST("words", postData)
-	authorized.POST("/words/:id", modifyDataItem)
-	authorized.DELETE("/words/:id", removeDataItem)
+	router.GET("/words", authenticationMiddleware(), getData)
+	router.GET("/words/:id", authenticationMiddleware(), getDataItem)
+	router.POST("words", authenticationMiddleware(), postData)
+	router.POST("/words/:id", authenticationMiddleware(), modifyDataItem)
+	router.DELETE("/words/:id", authenticationMiddleware(), removeDataItem)
 
 	address := cfg.IP_Address + ":" + cfg.Listen_Port
 	// router.Run(address)
