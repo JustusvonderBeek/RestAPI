@@ -2,7 +2,10 @@
 
 echo "Creating a new certificate and key"
 
-# Create a new RSA key and certificate for 3 years (3*365 days)
-openssl req -x509 -newkey rsa:4096 -keyout vocabulary_local.key -out vocabulary_local.cer -sha256 -days 1095 -nodes -subj "/C=DE/ST=Bavaria/L=Munich/O=Cloudsheeptech/OU=Vocabulary/CN=10.0.2.2"
+keyfile="vocabulary.key"
+certfile="vocabulary.cer"
 
-echo "Created new certificate under 'vocabulary.cer' and 'vocabulary.key'"
+# Create a new RSA key and certificate for 3 years (3*365 days)
+openssl req -x509 -newkey rsa:4096 -keyout $keyfile -out $certfile -sha256 -days 365 -nodes -subj "/C=DE/ST=Bavaria/L=Munich/O=Cloudsheeptech/OU=Vocabulary/CN=vocabulary.cloudsheeptech.com"
+
+echo "Created new certificate under '$keyfile' and '$certfile'"
