@@ -19,6 +19,7 @@ func generateToken() (string, error) {
 
 	// Read the secret from the environment
 	secretKey := os.Getenv(SECRET_KEY)
+	// log.Printf("Env key: %s", secretKey)
 	secretKeyByte := []byte(secretKey)
 	// Sign the token with a valid secret
 	tokenString, err := token.SignedString(secretKeyByte)
