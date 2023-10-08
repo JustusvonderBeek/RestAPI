@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 	"os"
 
@@ -33,6 +34,7 @@ func IPWhiteList(whitelist map[string]bool) gin.HandlerFunc {
 		ip := c.ClientIP()
 
 		if !whitelist[ip] {
+			log.Printf("Unauthorized access from %s", ip)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "fuck you in the ass blyad"})
 			return
 		}
