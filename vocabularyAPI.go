@@ -20,6 +20,11 @@ type Word struct {
 	Translation string
 }
 
+var IPWhitelist = map[string]bool{
+	"127.0.0.1":      true,
+	"188.100.243.67": true,
+}
+
 var vocabulary = []Word{}
 
 // -------------------------------------------------------------------------------
@@ -290,11 +295,13 @@ func startingServer(cfg Configuration) error {
 	vocabulary = readData()
 	router := gin.Default()
 
-	router.GET("/words", authenticationMiddleware(), getData)
-	router.GET("/words/:id", authenticationMiddleware(), getDataItem)
-	router.POST("words", authenticationMiddleware(), postData)
-	router.POST("/words/:id", authenticationMiddleware(), modifyDataItem)
-	router.DELETE("/words/:id", authenticationMiddleware(), removeDataItem)
+	router.Use(authenticationMiddleware())
+	router.Use(IPWhiteList(IPWhitelist))
+	router.GET("/words", getData)
+	router.GET("/words/:id", getDataItem)
+	router.POST("words", postData)
+	router.POST("/words/:id", modifyDataItem)
+	router.DELETE("/words/:id", removeDataItem)
 
 	address := cfg.IP_Address + ":" + cfg.Listen_Port
 	// router.Run(address)
