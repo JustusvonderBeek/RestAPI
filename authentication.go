@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"regexp"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
@@ -34,7 +35,9 @@ func IPWhiteList(whitelist map[string]bool) gin.HandlerFunc {
 		// If the IP isn't in the whitelist, forbid the request.
 		ip := c.ClientIP()
 
-		if !whitelist[ip] {
+		re := regexp.MustCompile(`[\d]+.[\d]+.[\d]+.[\d]+`)
+		ipRange := re.ReplaceAllString(ip, "$1.$2.0.0")
+		if !whitelist[ip] && !whitelist[ipRange] {
 			log.Printf("Unauthorized access from %s", ip)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "fuck you in the ass blyad"})
 			return

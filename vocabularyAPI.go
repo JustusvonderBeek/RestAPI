@@ -23,6 +23,7 @@ type Word struct {
 var IPWhitelist = map[string]bool{
 	"127.0.0.1":      true,
 	"188.100.243.67": true,
+	"138.246.0.0":    true,
 }
 
 var vocabulary = []Word{}
@@ -286,7 +287,7 @@ func startingServer(cfg Configuration) error {
 			log.Printf("Failed to create token: %s", err)
 			return err
 		}
-		println("New token: %s", token)
+		println("New token: ", token)
 		return nil
 	}
 	if cfg.Overwrite {
