@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -16,11 +15,11 @@ import (
 const SECRET_KEY = "VOCABULARY_SECRET_KEY"
 
 const (
-	PERFECT = 0
-	GOOD    = 1
-	BAD     = 2
-	POOR    = 3
-	NEW     = 4
+	PERFECT = "PERFECT"
+	GOOD    = "GOOD"
+	BAD     = "BAD"
+	POOR    = "POOR"
+	NEW     = "NEW"
 )
 
 type Wordv1 struct {
@@ -98,6 +97,9 @@ func fixIndexingV2(list *[]Word) {
 	log.Print("Fixing the indexing")
 	for idx := range *list {
 		(*list)[idx].ID = idx
+		if (*list)[idx].Confidence == "" {
+			(*list)[idx].Confidence = NEW
+		}
 	}
 }
 
@@ -166,7 +168,7 @@ func convertWordv1toWordv2(words []Wordv1) []Word {
 			ID:          v.ID,
 			Vocabulary:  v.Vocabulary,
 			Translation: v.Translation,
-			Confidence:  fmt.Sprintf("%d", NEW),
+			Confidence:  NEW,
 			Repeat:      0,
 		}
 		convertedList[idx] = converted
@@ -220,6 +222,7 @@ func getData(c *gin.Context) {
 func postData(c *gin.Context) {
 	var newVocab Word
 	if err := c.BindJSON(&newVocab); err != nil {
+		log.Printf("Word is in incorrect format: %v", c.Request.Body)
 		return
 	}
 
