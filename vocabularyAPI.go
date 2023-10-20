@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -75,9 +76,9 @@ func saveVocabulary(vocab *[]Wordv1) {
 	writeData(rawData)
 }
 
-func saveVocabularyv2(vocab *[]Word) {
+func saveVocabularyV2(vocab *[]Word) {
 	log.Print("Storing v2 of the vocabulary")
-	fixIndexingv2(vocab)
+	fixIndexingV2(vocab)
 	rawData, err := json.MarshalIndent(*vocab, "", "\t")
 	if err != nil {
 		log.Print("Failed to convert data to JSON!")
@@ -93,7 +94,7 @@ func fixIndexing(list *[]Wordv1) {
 	}
 }
 
-func fixIndexingv2(list *[]Word) {
+func fixIndexingV2(list *[]Word) {
 	log.Print("Fixing the indexing")
 	for idx := range *list {
 		(*list)[idx].ID = idx
@@ -126,7 +127,7 @@ func readData() []Wordv1 {
 	return vocabulary
 }
 
-func readDatav2() []Word {
+func readDataV2() []Word {
 	log.Print("Reading existing vocabulary")
 	filename := "vocabulary.json"
 	content, err := os.ReadFile(filename)
@@ -140,16 +141,37 @@ func readDatav2() []Word {
 	var vocabulary []Word
 	err = json.Unmarshal(content, &vocabulary)
 	if err != nil {
-		log.Print("The given file does not contain a valid vocabulary!")
-		return []Word{}
+		log.Print("The given file does not contain a valid V2 vocabulary!")
+		var oldVocab []Wordv1
+		err = json.Unmarshal(content, &oldVocab)
+		if err != nil {
+			log.Print("The given file does not contain a valid vocabulary!")
+			return []Word{}
+		}
+		vocabulary = convertWordv1toWordv2(oldVocab)
 	}
 	if len(vocabulary) > 10 {
 		log.Printf("Loaded vocabulary:\n%+v", vocabulary[:10])
 	} else {
 		log.Printf("Loaded vocabulary:\n%+v", vocabulary)
 	}
-	saveVocabularyv2(&vocabulary)
+	saveVocabularyV2(&vocabulary)
 	return vocabulary
+}
+
+func convertWordv1toWordv2(words []Wordv1) []Word {
+	convertedList := make([]Word, len(words))
+	for idx, v := range words {
+		converted := Word{
+			ID:          v.ID,
+			Vocabulary:  v.Vocabulary,
+			Translation: v.Translation,
+			Confidence:  fmt.Sprintf("%d", NEW),
+			Repeat:      0,
+		}
+		convertedList[idx] = converted
+	}
+	return convertedList
 }
 
 func swapExistingVocabulary() {
@@ -204,7 +226,7 @@ func postData(c *gin.Context) {
 	// Fixing the ID in the received Word
 	newVocab.ID = len(vocabulary)
 	vocabulary = append(vocabulary, newVocab)
-	saveVocabularyv2(&vocabulary)
+	saveVocabularyV2(&vocabulary)
 	c.IndentedJSON(http.StatusCreated, vocabulary)
 }
 
@@ -250,7 +272,7 @@ func modifyDataItem(c *gin.Context) {
 	vocabulary[compare].Translation = updatedWord.Translation
 
 	log.Printf("Updated %d to %+v", compare, updatedWord)
-	saveVocabularyv2(&vocabulary)
+	saveVocabularyV2(&vocabulary)
 	c.IndentedJSON(http.StatusCreated, vocabulary)
 }
 
@@ -290,7 +312,7 @@ func removeDataItem(c *gin.Context) {
 
 	log.Printf("Removed item at index %d", compare)
 	// log.Printf("Full Vocab: %+v", vocabulary)
-	saveVocabularyv2(&vocabulary)
+	saveVocabularyV2(&vocabulary)
 	c.IndentedJSON(http.StatusOK, vocabulary)
 }
 
@@ -357,7 +379,7 @@ func startingServer(cfg Configuration) error {
 	if cfg.Overwrite {
 		swapExistingVocabulary()
 	}
-	vocabulary = readDatav2()
+	vocabulary = readDataV2()
 	router := gin.Default()
 
 	router.Use(authenticationMiddleware())
