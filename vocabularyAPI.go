@@ -223,6 +223,9 @@ func removeDataItem(c *gin.Context) {
 		return
 	}
 
+	// Swapping out vocabulary in case of an error
+	swapExistingVocabulary()
+
 	vocabulary = append(vocabulary[:compare], vocabulary[compare+1:]...)
 
 	log.Printf("Removed item at index %d", compare)

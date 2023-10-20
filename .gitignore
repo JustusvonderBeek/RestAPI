@@ -1,0 +1,16 @@
+# Ignore logfiles
+
+*.log
+
+#Ignore go internal logfiles
+*.sum
+
+# Ignore final output
+v1
+
+# Ignore vocabulary data
+vocabulary*.json
+
+# Ignore certificate and key files
+*.cer
+*.key
