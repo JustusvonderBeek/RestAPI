@@ -14,10 +14,26 @@ import (
 
 const SECRET_KEY = "VOCABULARY_SECRET_KEY"
 
+const (
+	PERFECT = 0
+	GOOD    = 1
+	BAD     = 2
+	POOR    = 3
+	NEW     = 4
+)
+
+type Wordv1 struct {
+	ID          int
+	Vocabulary  string
+	Translation string
+}
+
 type Word struct {
 	ID          int
 	Vocabulary  string
 	Translation string
+	Confidence  string
+	Repeat      int
 }
 
 var IPWhitelist = map[string]bool{
@@ -47,7 +63,7 @@ func writeData(data []byte) error {
 	return nil
 }
 
-func saveVocabulary(vocab *[]Word) {
+func saveVocabulary(vocab *[]Wordv1) {
 	log.Print("Storing the vocabulary")
 	// Do this every time due to wrong read or remove operation
 	fixIndexing(vocab)
@@ -59,14 +75,58 @@ func saveVocabulary(vocab *[]Word) {
 	writeData(rawData)
 }
 
-func fixIndexing(list *[]Word) {
+func saveVocabularyv2(vocab *[]Word) {
+	log.Print("Storing v2 of the vocabulary")
+	fixIndexingv2(vocab)
+	rawData, err := json.MarshalIndent(*vocab, "", "\t")
+	if err != nil {
+		log.Print("Failed to convert data to JSON!")
+		return
+	}
+	writeData(rawData)
+}
+
+func fixIndexing(list *[]Wordv1) {
 	log.Print("Fixing the indexing")
 	for idx := range *list {
 		(*list)[idx].ID = idx
 	}
 }
 
-func readData() []Word {
+func fixIndexingv2(list *[]Word) {
+	log.Print("Fixing the indexing")
+	for idx := range *list {
+		(*list)[idx].ID = idx
+	}
+}
+
+func readData() []Wordv1 {
+	log.Print("Reading existing vocabulary")
+	filename := "vocabulary.json"
+	content, err := os.ReadFile(filename)
+	if err != nil {
+		log.Printf("No vocabulary found. Creating new one...")
+		return []Wordv1{}
+	}
+	if string(content) == "" {
+		return []Wordv1{}
+	}
+	var vocabulary []Wordv1
+	err = json.Unmarshal(content, &vocabulary)
+	if err != nil {
+		log.Print("The given file does not contain a valid vocabulary!")
+		return []Wordv1{}
+	}
+	if len(vocabulary) > 10 {
+		log.Printf("Loaded vocabulary:\n%+v", vocabulary[:10])
+	} else {
+		log.Printf("Loaded vocabulary:\n%+v", vocabulary)
+	}
+	saveVocabulary(&vocabulary)
+	return vocabulary
+}
+
+func readDatav2() []Word {
 	log.Print("Reading existing vocabulary")
 	filename := "vocabulary.json"
 	content, err := os.ReadFile(filename)
@@ -88,7 +148,7 @@ func readData() []Word {
 	} else {
 		log.Printf("Loaded vocabulary:\n%+v", vocabulary)
 	}
-	saveVocabulary(&vocabulary)
+	saveVocabularyv2(&vocabulary)
 	return vocabulary
 }
 
@@ -144,7 +204,7 @@ func postData(c *gin.Context) {
 	// Fixing the ID in the received Word
 	newVocab.ID = len(vocabulary)
 	vocabulary = append(vocabulary, newVocab)
-	saveVocabulary(&vocabulary)
+	saveVocabularyv2(&vocabulary)
 	c.IndentedJSON(http.StatusCreated, vocabulary)
 }
 
@@ -190,7 +250,7 @@ func modifyDataItem(c *gin.Context) {
 	vocabulary[compare].Translation = updatedWord.Translation
 
 	log.Printf("Updated %d to %+v", compare, updatedWord)
-	saveVocabulary(&vocabulary)
+	saveVocabularyv2(&vocabulary)
 	c.IndentedJSON(http.StatusCreated, vocabulary)
 }
 
@@ -230,7 +290,7 @@ func removeDataItem(c *gin.Context) {
 
 	log.Printf("Removed item at index %d", compare)
 	// log.Printf("Full Vocab: %+v", vocabulary)
-	saveVocabulary(&vocabulary)
+	saveVocabularyv2(&vocabulary)
 	c.IndentedJSON(http.StatusOK, vocabulary)
 }
 
@@ -297,7 +357,7 @@ func startingServer(cfg Configuration) error {
 	if cfg.Overwrite {
 		swapExistingVocabulary()
 	}
-	vocabulary = readData()
+	vocabulary = readDatav2()
 	router := gin.Default()
 
 	router.Use(authenticationMiddleware())
