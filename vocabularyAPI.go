@@ -14,14 +14,6 @@ import (
 
 const SECRET_KEY = "VOCABULARY_SECRET_KEY"
 
-const (
-	PERFECT = "PERFECT"
-	GOOD    = "GOOD"
-	BAD     = "BAD"
-	POOR    = "POOR"
-	NEW     = "NEW"
-)
-
 type Wordv1 struct {
 	ID          int
 	Vocabulary  string
@@ -32,7 +24,7 @@ type Word struct {
 	ID          int
 	Vocabulary  string
 	Translation string
-	Confidence  string
+	Confidence  int
 	Repeat      int
 }
 
@@ -97,9 +89,6 @@ func fixIndexingV2(list *[]Word) {
 	log.Print("Fixing the indexing")
 	for idx := range *list {
 		(*list)[idx].ID = idx
-		if (*list)[idx].Confidence == "" {
-			(*list)[idx].Confidence = NEW
-		}
 	}
 }
 
@@ -168,7 +157,7 @@ func convertWordv1toWordv2(words []Wordv1) []Word {
 			ID:          v.ID,
 			Vocabulary:  v.Vocabulary,
 			Translation: v.Translation,
-			Confidence:  NEW,
+			Confidence:  0,
 			Repeat:      0,
 		}
 		convertedList[idx] = converted
