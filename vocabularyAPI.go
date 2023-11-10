@@ -407,7 +407,7 @@ func startingServer(cfg Configuration) error {
 	router.GET("/words/:id", getDataItem)
 	router.POST("words", postData)
 	router.POST("/words/:id", modifyDataItem)
-	router.POST("/words/confidence", saveConfidence)
+	router.POST("/confidence", saveConfidence)
 	router.DELETE("/words/:id", removeDataItem)
 
 	address := cfg.IP_Address + ":" + cfg.Listen_Port
