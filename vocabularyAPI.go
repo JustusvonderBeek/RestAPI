@@ -210,8 +210,10 @@ func updateConfidence(confidenceList []WordConfidence) {
 	log.Print("Updating confidence")
 	for _, word := range confidenceList {
 		wordToUpdate := vocabulary[word.ID]
-		// Only store "positive" updates; don't reset status
-		wordToUpdate.Confidence = word.Confidence
+		// Only store "positive" updates or negative answers; don't reset status
+		if word.Confidence >= wordToUpdate.Confidence-10 {
+			wordToUpdate.Confidence = word.Confidence
+		}
 		if word.Repeat > wordToUpdate.Repeat {
 			wordToUpdate.Repeat = word.Repeat
 		}
