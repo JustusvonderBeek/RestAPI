@@ -28,6 +28,12 @@ type Word struct {
 	Repeat      int
 }
 
+type WordConfidence struct {
+	ID         int
+	Confidence int
+	Repeat     int
+}
+
 var IPWhitelist = map[string]bool{
 	"127.0.0.1":      true,
 	"188.100.243.67": true,
@@ -200,6 +206,16 @@ func swapExistingVocabulary() {
 	os.Create(vocab)
 }
 
+func updateConfidence(confidenceList []WordConfidence) {
+	log.Print("Updating confidence")
+	for _, word := range confidenceList {
+		wordToUpdate := vocabulary[word.ID]
+		wordToUpdate.Confidence = word.Confidence
+		wordToUpdate.Repeat = word.Repeat
+		vocabulary[word.ID] = wordToUpdate
+	}
+}
+
 // -------------------------------------------------------------------------------
 // API Implementation
 // -------------------------------------------------------------------------------
@@ -220,6 +236,17 @@ func postData(c *gin.Context) {
 	vocabulary = append(vocabulary, newVocab)
 	saveVocabularyV2(&vocabulary)
 	c.IndentedJSON(http.StatusCreated, vocabulary)
+}
+
+func saveConfidence(c *gin.Context) {
+	var confidenceList []WordConfidence
+	if err := c.BindJSON(&confidenceList); err != nil {
+		log.Printf("ConfidenceList is in incorrect format: %v\n%s", c.Request.Body, err)
+		return
+	}
+	updateConfidence(confidenceList)
+	saveVocabularyV2(&vocabulary)
+	c.IndentedJSON(http.StatusAccepted, vocabulary)
 }
 
 func getDataItem(c *gin.Context) {
@@ -380,6 +407,7 @@ func startingServer(cfg Configuration) error {
 	router.GET("/words/:id", getDataItem)
 	router.POST("words", postData)
 	router.POST("/words/:id", modifyDataItem)
+	router.POST("/words/confidence", saveConfidence)
 	router.DELETE("/words/:id", removeDataItem)
 
 	address := cfg.IP_Address + ":" + cfg.Listen_Port
