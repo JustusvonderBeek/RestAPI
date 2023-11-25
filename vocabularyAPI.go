@@ -39,6 +39,7 @@ var IPWhitelist = map[string]bool{
 	"188.100.243.67": true,
 	"138.246.0.0":    true,
 	"131.159.0.0":    true,
+	"88.77.0.0":      true,
 }
 
 var vocabulary = []Word{}
